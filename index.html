@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendario Laboral 2026</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="section">
+      <div class="section-title">Acciones</div>
+      <div class="controls">
+        <button onclick="exportarDatos()">Exportar JSON</button>
+        <label class="file-button">
+          Importar JSON
+          <input type="file" id="importFile" accept=".json" onchange="importarDatos(event)" style="display: none;">
+        </label>
+      </div>
+    </div>
+
+
+    <div class="tabs">
+      <button class="tab active" onclick="cambiarVista('tabla')">Tabla</button>
+      <button class="tab" onclick="cambiarVista('calendario')">Calendario</button>
+    </div>
+
+    <div id="vistaTabla" class="vista active">
+      <div class="tabla-wrapper">
+        <table id="calendario"></table>
+      </div>
+
+      <div class="section" style="margin-top: 24px;">
+        <div class="section-title">Resumen de Horas</div>
+        <div class="resumen-grid">
+          <div class="resumen-box">
+            <div class="resumen-label">Horas Trabajadas</div>
+            <div class="resumen-value" id="totalAnual">0</div>
+            <div class="resumen-secondary">Si no tomaras vacaciones</div>
+          </div>
+          <div class="resumen-box editable">
+            <div class="resumen-label">Pendientes Anterior</div>
+            <div class="resumen-value">
+              <input type="number" id="pendientesAnterior" value="25.5" step="0.5" min="0" oninput="calcularTotales()">
+            </div>
+            <div class="resumen-secondary">Horas ganadas en 2025</div>
+          </div>
+          <div class="resumen-box editable">
+            <div class="resumen-label">Convenio</div>
+            <div class="resumen-value">
+              <input type="number" id="horasConvenio" value="1800" step="50" min="0" oninput="calcularTotales()">
+            </div>
+            <div class="resumen-secondary">Horas a trabajar en 2026</div>
+          </div>
+          <div class="resumen-box">
+            <div class="resumen-label">Bolsa Vacaciones</div>
+            <div class="resumen-value" id="bolsaVacaciones">0</div>
+            <div class="resumen-secondary">Horas totales disponibles</div>
+          </div>
+          <div class="resumen-box">
+            <div class="resumen-label">Disfrutadas</div>
+            <div class="resumen-value" id="horasVacaciones">0</div>
+            <div class="resumen-secondary">Horas consumidas</div>
+          </div>
+          <div class="resumen-box highlight">
+            <div class="resumen-label">Saldo Restante</div>
+            <div class="resumen-value" id="saldoRestante">0</div>
+            <div class="resumen-secondary" id="diasRestantesInfo">Quedan 0 días</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="vistaCalendario" class="vista">
+      <div id="calendarioModerno" class="calendario-grid"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
