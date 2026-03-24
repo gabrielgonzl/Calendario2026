@@ -1,5 +1,7 @@
 // Supabase client configuration
 // Project URL derived from connection string host: db.pmhhmyzjwlqnkjhsioju.supabase.co
+const ANON_KEY_PLACEHOLDER = 'PON_AQUI_LA_CLAVE_ANON_PUBLIC';
+
 const DEFAULT_SUPABASE_CONFIG = {
   url: 'https://pmhhmyzjwlqnkjhsioju.supabase.co',
   anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE'
@@ -108,13 +110,20 @@ function createSupabaseRestClient({ url, anonKey }) {
 window.supabaseConfigReady = (async () => {
   let localConfig = {};
 
-  try {
-    const response = await fetch('config.local.json', { cache: 'no-store' });
-    if (response.ok) {
-      localConfig = await response.json();
+  for (const configFile of ['config.local.json', 'config.json']) {
+    try {
+      const response = await fetch(configFile, { cache: 'no-store' });
+      if (response.ok) {
+        const parsed = await response.json();
+        // Only use this file if it has a real (non-placeholder) anonKey
+        if (parsed.anonKey && parsed.anonKey !== ANON_KEY_PLACEHOLDER) {
+          localConfig = parsed;
+          break;
+        }
+      }
+    } catch (error) {
+      // Ignore missing config files and try the next one.
     }
-  } catch (error) {
-    // Ignore missing local config and continue with the built-in fallback.
   }
 
   const supabaseConfig = {
