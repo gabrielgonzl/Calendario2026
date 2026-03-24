@@ -333,7 +333,7 @@ function guardarDatos() {
   localStorage.setItem('calendario2026_datos', JSON.stringify(datos));
 
   if (!supabaseDisponible()) {
-    mostrarEstado('Guardado localmente (configura config.local.js para usar la BD)', 'warning');
+    mostrarEstado('Guardado localmente (configura config.local.json para usar la BD)', 'warning');
     return;
   }
 
