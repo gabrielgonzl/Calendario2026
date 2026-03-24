@@ -1,18 +1,136 @@
 // Supabase client configuration
 // Project URL derived from connection string host: db.pmhhmyzjwlqnkjhsioju.supabase.co
-const SUPABASE_URL = 'https://pmhhmyzjwlqnkjhsioju.supabase.co';
+const DEFAULT_SUPABASE_CONFIG = {
+  url: 'https://pmhhmyzjwlqnkjhsioju.supabase.co',
+  anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE'
+};
 
-// Get this key from: Supabase Dashboard → Settings → API → Project API keys → "anon public"
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+let supabaseClient = null;
 
-if (SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
-  console.warn(
-    'Supabase: la clave API no está configurada. ' +
-    'Obtén la clave "anon public" en Supabase Dashboard → Settings → API ' +
-    'y actualiza SUPABASE_ANON_KEY en supabase.js. ' +
-    'La aplicación funcionará usando solo almacenamiento local.'
-  );
+function createSupabaseRestClient({ url, anonKey }) {
+  const baseUrl = `${url.replace(/\/$/, '')}/rest/v1`;
+  const baseHeaders = {
+    apikey: anonKey,
+    Authorization: `Bearer ${anonKey}`
+  };
+
+  async function parseResponse(response) {
+    let data = null;
+    let error = null;
+
+    const text = await response.text();
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        error = {
+          message: 'Respuesta inválida de Supabase',
+          details: parseError.message
+        };
+      }
+    }
+
+    if (!response.ok) {
+      error = data || {
+        message: `Error HTTP ${response.status}`,
+        details: response.statusText
+      };
+      data = null;
+    }
+
+    return { data, error };
+  }
+
+  async function request(url, options) {
+    try {
+      const response = await fetch(url, options);
+      return await parseResponse(response);
+    } catch (fetchError) {
+      return {
+        data: null,
+        error: {
+          message: 'No se pudo conectar con Supabase',
+          details: fetchError.message
+        }
+      };
+    }
+  }
+
+  return {
+    from(table) {
+      return {
+        upsert(payload) {
+          return request(`${baseUrl}/${table}?on_conflict=id`, {
+            method: 'POST',
+            headers: {
+              ...baseHeaders,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates,return=representation'
+            },
+            body: JSON.stringify(payload)
+          });
+        },
+        select(columns) {
+          const params = new URLSearchParams({ select: columns });
+
+          return {
+            eq(column, value) {
+              params.set(column, `eq.${value}`);
+
+              return {
+                async single() {
+                  const { data, error } = await request(`${baseUrl}/${table}?${params.toString()}`, {
+                    headers: {
+                      ...baseHeaders,
+                      Accept: 'application/json'
+                    }
+                  });
+
+                  if (error) {
+                    return { data: null, error };
+                  }
+
+                  if (!Array.isArray(data) || data.length === 0) {
+                    return { data: null, error: null };
+                  }
+
+                  return { data: data[0], error: null };
+                }
+              };
+            }
+          };
+        }
+      };
+    }
+  };
 }
 
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabaseConfigReady = (async () => {
+  let localConfig = {};
+
+  try {
+    const response = await fetch('config.local.json', { cache: 'no-store' });
+    if (response.ok) {
+      localConfig = await response.json();
+    }
+  } catch (error) {
+    // Ignore missing local config and continue with the built-in fallback.
+  }
+
+  const supabaseConfig = {
+    ...DEFAULT_SUPABASE_CONFIG,
+    ...(window.SUPABASE_CONFIG || {}),
+    ...localConfig
+  };
+
+  if (supabaseConfig.anonKey === DEFAULT_SUPABASE_CONFIG.anonKey) {
+    console.warn(
+      'Supabase: falta config.local.json con la clave "anon public". ' +
+      'Copia config.example.json a config.local.json y añade solo la clave pública anon. ' +
+      'La aplicación funcionará usando solo almacenamiento local.'
+    );
+    return;
+  }
+
+  supabaseClient = createSupabaseRestClient(supabaseConfig);
+})();

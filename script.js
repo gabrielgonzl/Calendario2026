@@ -315,6 +315,10 @@ function calcularTotales() {
 
 let _estadoTimer = null;
 
+function supabaseDisponible() {
+  return !!supabaseClient;
+}
+
 function guardarDatos() {
   const datos = {
     id: 1,
@@ -327,6 +331,11 @@ function guardarDatos() {
 
   // Always persist locally as offline fallback
   localStorage.setItem('calendario2026_datos', JSON.stringify(datos));
+
+  if (!supabaseDisponible()) {
+    mostrarEstado('Guardado localmente (configura config.local.json para usar la BD)', 'warning');
+    return;
+  }
 
   // Persist to Supabase (fire-and-forget; errors are shown in the status bar)
   supabaseClient
@@ -343,6 +352,9 @@ function guardarDatos() {
 }
 
 async function cargarDatos() {
+  if (!supabaseDisponible()) {
+    mostrarEstado('BD no configurada – usando datos locales', 'warning');
+  } else {
   try {
     const { data, error } = await supabaseClient
       .from('calendario_config')
@@ -367,6 +379,7 @@ async function cargarDatos() {
   } catch (err) {
     console.error('Error al cargar desde Supabase:', err);
     mostrarEstado('BD no disponible – usando datos locales', 'warning');
+  }
   }
 
   // Fallback: load from localStorage
@@ -476,4 +489,10 @@ async function init() {
   calcularTotales();
 }
 
-init();
+(async () => {
+  if (window.supabaseConfigReady) {
+    await window.supabaseConfigReady;
+  }
+
+  await init();
+})();
