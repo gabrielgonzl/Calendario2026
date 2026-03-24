@@ -1,4 +1,59 @@
 
+const SESSION_KEY = 'cal2026_auth';
+
+function isAuthenticated() {
+  return localStorage.getItem(SESSION_KEY) === '1';
+}
+
+function showApp() {
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const input = document.getElementById('loginInput');
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  const password = input.value;
+  if (!password) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+  errorEl.hidden = true;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+
+    if (res.ok) {
+      localStorage.setItem(SESSION_KEY, '1');
+      showApp();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      errorEl.textContent = data.error || 'Contraseña incorrecta';
+      errorEl.hidden = false;
+      input.value = '';
+      input.focus();
+    }
+  } catch (_) {
+    errorEl.textContent = 'Error de conexión, inténtalo de nuevo';
+    errorEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+// Show the app immediately if already authenticated, otherwise show the overlay
+if (isAuthenticated()) {
+  showApp();
+}
+
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
