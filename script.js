@@ -489,4 +489,10 @@ async function init() {
   calcularTotales();
 }
 
-init();
+(async () => {
+  if (window.supabaseConfigReady) {
+    await window.supabaseConfigReady;
+  }
+
+  await init();
+})();
