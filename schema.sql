@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.calendario_config (
 -- Adjust or tighten these policies as needed for your security requirements.
 ALTER TABLE public.calendario_config ENABLE ROW LEVEL SECURITY;
 
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.calendario_config TO anon, authenticated;
+
 DROP POLICY IF EXISTS "Allow all operations for anon" ON public.calendario_config;
 
 CREATE POLICY "Allow all operations for anon"
