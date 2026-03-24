@@ -5,17 +5,20 @@
 
 -- Create the configuration table
 CREATE TABLE IF NOT EXISTS public.calendario_config (
-  id                  INTEGER PRIMARY KEY DEFAULT 1,
+  id                  INTEGER PRIMARY KEY CHECK (id = 1),
   horas_por_dia       JSONB   NOT NULL DEFAULT '{}',
   estado_dias         JSONB   NOT NULL DEFAULT '{}',
   pendientes_anterior NUMERIC NOT NULL DEFAULT 25.5,
   convenio            NUMERIC NOT NULL DEFAULT 1800,
-  updated_at          TIMESTAMPTZ DEFAULT NOW()
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Allow the app (anon role) to read and write this table.
 -- Adjust or tighten these policies as needed for your security requirements.
 ALTER TABLE public.calendario_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all operations for anon"
+  ON public.calendario_config;
 
 CREATE POLICY "Allow all operations for anon"
   ON public.calendario_config
