@@ -310,27 +310,78 @@ function calcularTotales() {
     saldoElement.parentElement.classList.remove('error');
   }
 
-  guardarLocal();
+  guardarDatos();
 }
 
-function guardarLocal() {
+let _estadoTimer = null;
+
+function guardarDatos() {
   const datos = {
-    horasPorDia,
-    estadoDias,
-    pendientesAnterior: parseFloat(document.getElementById('pendientesAnterior').value) || 0,
-    convenio: parseFloat(document.getElementById('horasConvenio').value) || 1800
+    id: 1,
+    horas_por_dia: horasPorDia,
+    estado_dias: estadoDias,
+    pendientes_anterior: parseFloat(document.getElementById('pendientesAnterior').value) || 0,
+    convenio: parseFloat(document.getElementById('horasConvenio').value) || 1800,
+    updated_at: new Date().toISOString()
   };
+
+  // Always persist locally as offline fallback
   localStorage.setItem('calendario2026_datos', JSON.stringify(datos));
+
+  // Persist to Supabase (fire-and-forget; errors are shown in the status bar)
+  supabaseClient
+    .from('calendario_config')
+    .upsert(datos)
+    .then(({ error }) => {
+      if (error) {
+        console.error('Error al guardar en Supabase:', error);
+        mostrarEstado('Guardado localmente (no se pudo conectar a la BD)', 'warning');
+      } else {
+        mostrarEstado('Guardado en base de datos ✓', 'success');
+      }
+    });
 }
 
-function cargarLocal() {
+async function cargarDatos() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('calendario_config')
+      .select('*')
+      .eq('id', 1)
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      if (data.horas_por_dia !== undefined) horasPorDia = data.horas_por_dia;
+      if (data.estado_dias !== undefined) estadoDias = data.estado_dias;
+      if (data.pendientes_anterior !== undefined) {
+        document.getElementById('pendientesAnterior').value = data.pendientes_anterior;
+      }
+      if (data.convenio !== undefined) {
+        document.getElementById('horasConvenio').value = data.convenio;
+      }
+      mostrarEstado('Datos cargados desde la base de datos ✓', 'success');
+      return true;
+    }
+  } catch (err) {
+    console.error('Error al cargar desde Supabase:', err);
+    mostrarEstado('BD no disponible – usando datos locales', 'warning');
+  }
+
+  // Fallback: load from localStorage
   const stored = localStorage.getItem('calendario2026_datos');
   if (stored) {
     try {
       const datos = JSON.parse(stored);
-      if (datos.horasPorDia) horasPorDia = datos.horasPorDia;
-      if (datos.estadoDias) estadoDias = datos.estadoDias;
-      if (datos.pendientesAnterior !== undefined) {
+      // Support both old camelCase keys and new snake_case keys
+      if (datos.horas_por_dia !== undefined) horasPorDia = datos.horas_por_dia;
+      else if (datos.horasPorDia !== undefined) horasPorDia = datos.horasPorDia;
+      if (datos.estado_dias !== undefined) estadoDias = datos.estado_dias;
+      else if (datos.estadoDias !== undefined) estadoDias = datos.estadoDias;
+      if (datos.pendientes_anterior !== undefined) {
+        document.getElementById('pendientesAnterior').value = datos.pendientes_anterior;
+      } else if (datos.pendientesAnterior !== undefined) {
         document.getElementById('pendientesAnterior').value = datos.pendientesAnterior;
       }
       if (datos.convenio !== undefined) {
@@ -340,6 +391,30 @@ function cargarLocal() {
       console.error('Error al cargar datos de localStorage:', e);
     }
   }
+
+  return false;
+}
+
+function mostrarEstado(mensaje, tipo) {
+  const el = document.getElementById('estadoBD');
+  if (!el) return;
+  el.textContent = mensaje;
+  el.className = 'estado-bd estado-bd--' + tipo;
+  clearTimeout(_estadoTimer);
+  _estadoTimer = setTimeout(() => {
+    el.textContent = '';
+    el.className = 'estado-bd';
+  }, 5000);
+}
+
+async function sincronizarDB() {
+  mostrarEstado('Sincronizando…', 'info');
+  inicializarHoras();
+  await cargarDatos();
+  crearCalendario();
+  const calendarioModerno = document.getElementById('calendarioModerno');
+  if (calendarioModerno.innerHTML !== '') crearCalendarioModerno();
+  calcularTotales();
 }
 
 function exportarDatos() {
@@ -393,7 +468,12 @@ function importarDatos(event) {
   reader.readAsText(file);
 }
 
-inicializarHoras();
-cargarLocal();
-crearCalendario();
-calcularTotales();
+async function init() {
+  mostrarEstado('Cargando datos…', 'info');
+  inicializarHoras();
+  await cargarDatos();
+  crearCalendario();
+  calcularTotales();
+}
+
+init();
