@@ -565,6 +565,35 @@ th {
   font-weight: 500;
 }
 
+/* DB status indicator */
+.estado-bd {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  transition: var(--transition);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.estado-bd--success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.estado-bd--warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.estado-bd--info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   body {

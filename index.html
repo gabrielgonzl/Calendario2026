@@ -18,6 +18,8 @@
           Importar JSON
           <input type="file" id="importFile" accept=".json" onchange="importarDatos(event)" style="display: none;">
         </label>
+        <button onclick="sincronizarDB()" id="btnSincronizar">Sincronizar BD</button>
+        <span id="estadoBD" class="estado-bd"></span>
       </div>
     </div>
 
@@ -78,6 +80,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="script.js"></script>
 </body>
 
