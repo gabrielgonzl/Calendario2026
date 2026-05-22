@@ -406,38 +406,70 @@ function guardarDatos() {
     });
 }
 
-async function cargarDatos() {
-  if (!supabaseDisponible()) {
-    mostrarEstado('BD no configurada – usando datos locales', 'warning');
-  } else {
+async function cargarDatosDesdeDataJSON() {
   try {
-    const { data, error } = await supabaseClient
-      .from('calendario_config')
-      .select('*')
-      .eq('id', 1)
-      .single();
-
-    if (error) throw error;
-
-    if (data) {
-      if (data.horas_por_dia !== undefined) horasPorDia = data.horas_por_dia;
-      if (data.estado_dias !== undefined) estadoDias = data.estado_dias;
-      if (data.pendientes_anterior !== undefined) {
-        document.getElementById('pendientesAnterior').value = data.pendientes_anterior;
-      }
-      if (data.convenio !== undefined) {
-        document.getElementById('horasConvenio').value = data.convenio;
-      }
-      mostrarEstado('Datos cargados desde la base de datos ✓', 'success');
-      return true;
+    const response = await fetch('data.json');
+    if (!response.ok) throw new Error('No se pudo cargar data.json');
+    
+    const datos = await response.json();
+    
+    // Soportar tanto claves camelCase como snake_case
+    if (datos.horas_por_dia !== undefined) horasPorDia = datos.horas_por_dia;
+    else if (datos.horasPorDia !== undefined) horasPorDia = datos.horasPorDia;
+    
+    if (datos.estado_dias !== undefined) estadoDias = datos.estado_dias;
+    else if (datos.estadoDias !== undefined) estadoDias = datos.estadoDias;
+    
+    if (datos.pendientes_anterior !== undefined) {
+      document.getElementById('pendientesAnterior').value = datos.pendientes_anterior;
+    } else if (datos.pendientesAnterior !== undefined) {
+      document.getElementById('pendientesAnterior').value = datos.pendientesAnterior;
     }
-  } catch (err) {
-    console.error('Error al cargar desde Supabase:', err);
-    mostrarEstado('BD no disponible – usando datos locales', 'warning');
+    
+    if (datos.convenio !== undefined) {
+      document.getElementById('horasConvenio').value = datos.convenio;
+    }
+    
+    mostrarEstado('Datos cargados desde data.json ✓', 'success');
+    return true;
+  } catch (error) {
+    console.error('Error al cargar data.json:', error);
+    return false;
   }
+}
+
+async function cargarDatos() {
+  // Paso 1: Intentar cargar desde Supabase
+  if (supabaseDisponible()) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('calendario_config')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        if (data.horas_por_dia !== undefined) horasPorDia = data.horas_por_dia;
+        if (data.estado_dias !== undefined) estadoDias = data.estado_dias;
+        if (data.pendientes_anterior !== undefined) {
+          document.getElementById('pendientesAnterior').value = data.pendientes_anterior;
+        }
+        if (data.convenio !== undefined) {
+          document.getElementById('horasConvenio').value = data.convenio;
+        }
+        mostrarEstado('Datos cargados desde la base de datos ✓', 'success');
+        return true;
+      }
+    } catch (err) {
+      console.error('Error al cargar desde Supabase:', err);
+    }
+  } else {
+    mostrarEstado('BD no configurada', 'warning');
   }
 
-  // Fallback: load from localStorage
+  // Paso 2: Intentar cargar desde localStorage
   const stored = localStorage.getItem('calendario2026_datos');
   if (stored) {
     try {
@@ -455,12 +487,16 @@ async function cargarDatos() {
       if (datos.convenio !== undefined) {
         document.getElementById('horasConvenio').value = datos.convenio;
       }
+      mostrarEstado('Datos cargados desde memoria local ✓', 'success');
+      return true;
     } catch (e) {
       console.error('Error al cargar datos de localStorage:', e);
     }
   }
 
-  return false;
+  // Paso 3: Fallback final a data.json
+  mostrarEstado('Cargando datos de fallback...', 'info');
+  return await cargarDatosDesdeDataJSON();
 }
 
 function mostrarEstado(mensaje, tipo) {
