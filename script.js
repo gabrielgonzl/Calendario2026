@@ -464,38 +464,13 @@ async function cargarDatos() {
       }
     } catch (err) {
       console.error('Error al cargar desde Supabase:', err);
+      mostrarEstado('BD no disponible – cargando desde data.json', 'warning');
     }
   } else {
-    mostrarEstado('BD no configurada', 'warning');
+    mostrarEstado('BD no configurada – cargando desde data.json', 'warning');
   }
 
-  // Paso 2: Intentar cargar desde localStorage
-  const stored = localStorage.getItem('calendario2026_datos');
-  if (stored) {
-    try {
-      const datos = JSON.parse(stored);
-      // Support both old camelCase keys and new snake_case keys
-      if (datos.horas_por_dia !== undefined) horasPorDia = datos.horas_por_dia;
-      else if (datos.horasPorDia !== undefined) horasPorDia = datos.horasPorDia;
-      if (datos.estado_dias !== undefined) estadoDias = datos.estado_dias;
-      else if (datos.estadoDias !== undefined) estadoDias = datos.estadoDias;
-      if (datos.pendientes_anterior !== undefined) {
-        document.getElementById('pendientesAnterior').value = datos.pendientes_anterior;
-      } else if (datos.pendientesAnterior !== undefined) {
-        document.getElementById('pendientesAnterior').value = datos.pendientesAnterior;
-      }
-      if (datos.convenio !== undefined) {
-        document.getElementById('horasConvenio').value = datos.convenio;
-      }
-      mostrarEstado('Datos cargados desde memoria local ✓', 'success');
-      return true;
-    } catch (e) {
-      console.error('Error al cargar datos de localStorage:', e);
-    }
-  }
-
-  // Paso 3: Fallback final a data.json
-  mostrarEstado('Cargando datos de fallback...', 'info');
+  // Paso 2: Fallback a data.json
   return await cargarDatosDesdeDataJSON();
 }
 
